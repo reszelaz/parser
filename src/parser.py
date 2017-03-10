@@ -2,12 +2,15 @@ import re
 import collections
 
 # Token specification
-PARAM    = r"(?P<PARAM>[^\[\]\s]+)"
+PARAM = r"(?P<PARAM>[^\[\]\s]+)"
+QUOTEDPARAM = r"\"(?P<QUOTEDPARAM>.*?)\""
+SINGQUOTEDPARAM = r"'(?P<SINGQUOTEDPARAM>.*?)'"
 LPAREN = r"(?P<LPAREN>\[)"
 RPAREN = r"(?P<RPAREN>\])"
-WS     = r"(?P<WS>\s+)"
+WS = r"(?P<WS>\s+)"
 
-master_pat = re.compile("|".join([PARAM, LPAREN, RPAREN, WS]))
+master_pat = re.compile("|".join([QUOTEDPARAM, SINGQUOTEDPARAM, PARAM, LPAREN,
+                                  RPAREN, WS]))
 
 # Tokenizer
 Token = collections.namedtuple("Token", ["type","value"])
@@ -59,8 +62,12 @@ class Parser:
         "interpert parameters"
         params = []
         while True:
-            if self._accept("PARAM"):
-                params.append(str(self.tok.value))
+            if self._accept("QUOTEDPARAM"):
+                params.append(self.tok.value[1:-1])
+            elif self._accept("SINGQUOTEDPARAM"):
+                params.append(self.tok.value[1:-1])
+            elif self._accept("PARAM"):
+                params.append(self.tok.value)
             elif self._accept("LPAREN"):
                 params.append(self.param())
                 self._expect("RPAREN")
@@ -76,3 +83,9 @@ if __name__ == "__main__":
     assert p.parse("[[2 3][4 5]]") == [[["2", "3"], ["4", "5"]]]
     assert p.parse("[[mot01 3][mot02 5]] ct01 999") ==\
         [[["mot01", "3"], ["mot02", "5"]], "ct01", "999"]
+    assert p.parse('"2 3"') == ["2 3"]
+    assert p.parse("'2 3'") == ["2 3"]
+    assert p.parse("ScanFile file.dat") == ["ScanFile", "file.dat"]
+    assert p.parse("2 3 ['Hello world!' 'How are you?']") ==\
+        ["2", "3", ["Hello world!", "How are you?"]]
+    
