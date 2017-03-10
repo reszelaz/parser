@@ -88,4 +88,10 @@ if __name__ == "__main__":
     assert p.parse("ScanFile file.dat") == ["ScanFile", "file.dat"]
     assert p.parse("2 3 ['Hello world!' 'How are you?']") ==\
         ["2", "3", ["Hello world!", "How are you?"]]
-    
+
+    # in case of find all, the group does not contain '', but in case of match
+    # it does, why is that?
+    SINGQUOTEDPARAM = r"'(?P<SINGQUOTEDPARAM>.*?)'"
+    text = "'2 3'"
+    master_pat = re.compile(SINGQUOTEDPARAM)
+    assert master_pat.findall(text) == ["2 3"]
